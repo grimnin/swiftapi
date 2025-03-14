@@ -1,58 +1,68 @@
-//package com.test.swiftapi.controllers;
-//
-//import com.test.swiftapi.domain.entities.SwiftCode;
-//import com.test.swiftapi.services.SwiftCodeService;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.InjectMocks;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
-//import org.springframework.http.ResponseEntity;
-//
-//import java.util.Optional;
-//
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.Mockito.*;
-//
-//@ExtendWith(MockitoExtension.class)
-//class SwiftCodeControllerTest {
-//
-//    @Mock
-//    private SwiftCodeService swiftCodeService;
-//
-//    @InjectMocks
-//    private SwiftCodeController swiftCodeController;
-//
-//    @Test
-//    void testGetSwiftCodeById_WhenExists() {
-//        // Given
-//        String swiftCode = "AAISALTRXXX";
-//        SwiftCode mockCode = new SwiftCode();
-//        mockCode.setSwiftCode(swiftCode);
-//        mockCode.setBankName("UNITED BANK OF ALBANIA SH.A");
-//
-//        when(swiftCodeService.getSwiftCodeById(swiftCode)).thenReturn(Optional.of(mockCode));
-//
-//        // When
-//        ResponseEntity<?> response = swiftCodeController.getSwiftCodeById(swiftCode);
-//
-//        // Then
-//        assertEquals(200, response.getStatusCodeValue());
-//        assertNotNull(response.getBody());
-//        verify(swiftCodeService, times(1)).getSwiftCodeById(swiftCode);
-//    }
-//
-//    @Test
-//    void testGetSwiftCodeById_WhenNotExists() {
-//        // Given
-//        String swiftCode = "INVALIDCODE";
-//        when(swiftCodeService.getSwiftCodeById(swiftCode)).thenReturn(Optional.empty());
-//
-//        // When
-//        ResponseEntity<?> response = swiftCodeController.getSwiftCodeById(swiftCode);
-//
-//        // Then
-//        assertEquals(404, response.getStatusCodeValue());
-//        verify(swiftCodeService, times(1)).getSwiftCodeById(swiftCode);
-//    }
-//}
+package com.test.swiftapi.controllers;
+
+import com.test.swiftapi.domain.entities.Country;
+import com.test.swiftapi.domain.entities.SwiftCode;
+import com.test.swiftapi.repositories.CountryRepository;
+import com.test.swiftapi.repositories.SwiftCodeRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class SwiftCodeControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private SwiftCodeRepository swiftCodeRepository;
+
+    @Autowired
+    private CountryRepository countryRepository;
+
+    @Test
+    void getExistingSwiftCode_shouldReturnDetails() throws Exception {
+        // 📌 Sprawdź, czy kraj już istnieje w bazie
+        Country country = countryRepository.findByIso2("PL")
+                .orElseGet(() -> {
+                    Country newCountry = new Country();
+                    newCountry.setIso2("PL");
+                    newCountry.setName("Poland");
+                    return countryRepository.save(newCountry);
+                });
+
+        // 📌 Tworzymy SwiftCode i przypisujemy istniejący kraj
+        SwiftCode swiftCode = new SwiftCode("ALBPPLP1BMW", "Alior Bank", "Warszawa", true, country);
+
+        // 📌 Sprawdź, czy dany SwiftCode już istnieje, aby uniknąć duplikacji
+        if (swiftCodeRepository.findBySwiftCode(swiftCode.getSwiftCode()) == null) {
+            swiftCodeRepository.save(swiftCode);
+        }
+
+        mockMvc.perform(get("/v1/swift-codes/ALBPPLP1BMW")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.swiftCode", is("ALBPPLP1BMW")))
+                .andExpect(jsonPath("$.bankName", is("ALIOR BANK SPOLKA AKCYJNA"))) // ✅ Poprawiona wartość
+                .andExpect(jsonPath("$.countryISO2", is("PL")));
+
+    }
+
+
+
+
+    @Test
+    void getNonExistingSwiftCode_shouldReturn404() throws Exception {
+        mockMvc.perform(get("/v1/swift-codes/NONEXISTENT")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+}
