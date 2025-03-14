@@ -1,0 +1,21 @@
+CREATE DATABASE IF NOT EXISTS swift_db;
+USE swift_db;
+
+DROP TABLE IF EXISTS swift_code;
+CREATE TABLE countries (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    iso2 VARCHAR(2) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE swift_codes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    swiftCode VARCHAR(255) NOT NULL UNIQUE,
+    bankName VARCHAR(255) NOT NULL,
+    branchName VARCHAR(255),
+    city VARCHAR(255) NOT NULL,
+    country_id BIGINT NOT NULL,
+    FOREIGN KEY (country_id) REFERENCES countries(id) ON DELETE CASCADE
+);
+
+
