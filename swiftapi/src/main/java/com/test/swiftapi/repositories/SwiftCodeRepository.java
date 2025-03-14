@@ -1,5 +1,6 @@
 package com.test.swiftapi.repositories;
 
+import com.test.swiftapi.domain.entities.Country;
 import com.test.swiftapi.domain.entities.SwiftCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +20,5 @@ public interface SwiftCodeRepository extends JpaRepository<SwiftCode, Long> {
     List<SwiftCode> findBranchesByHeadquarter(String bankName);
 
 
+    boolean existsByCountry(Country country);
 }

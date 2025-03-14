@@ -1,17 +1,16 @@
 package com.test.swiftapi.controllers;
 
-import com.test.swiftapi.domain.dto.CountrySwiftCodesDTO;
-import com.test.swiftapi.domain.dto.SwiftCodeSimpleDTO;
+import com.test.swiftapi.domain.dto.*;
+import com.test.swiftapi.domain.entities.Country;
 import com.test.swiftapi.domain.entities.SwiftCode;
-import com.test.swiftapi.domain.dto.BranchDTO;
-import com.test.swiftapi.domain.dto.SwiftCodeDTO;
+import com.test.swiftapi.repositories.CountryRepository;
 import com.test.swiftapi.repositories.SwiftCodeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -20,9 +19,10 @@ import java.util.stream.Collectors;
 public class SwiftCodeController {
 
     private final SwiftCodeRepository swiftCodeRepository;
-
-    public SwiftCodeController(SwiftCodeRepository swiftCodeRepository) {
+    private final CountryRepository countryRepository;
+    public SwiftCodeController(SwiftCodeRepository swiftCodeRepository,CountryRepository countryRepository) {
         this.swiftCodeRepository = swiftCodeRepository;
+        this.countryRepository = countryRepository;
     }
 
     @GetMapping("/{swiftCode}")
@@ -94,5 +94,63 @@ public class SwiftCodeController {
 
         return ResponseEntity.ok(response);
     }
+    @PostMapping
+    public ResponseEntity<?> addSwiftCode(@RequestBody SwiftCodeDTO request) {
+        // Sprawdzamy, czy kod już istnieje
+        if (swiftCodeRepository.findBySwiftCode(request.swiftCode()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "SWIFT code '" + request.swiftCode() + "' already exists."));
+        }
+
+        // Pobieramy kraj lub tworzymy nowy
+        Country country = countryRepository.findByIso2(request.countryISO2())
+                .orElseGet(() -> {
+                    Country newCountry = new Country();
+                    newCountry.setIso2(request.countryISO2());
+                    newCountry.setName(request.countryName());
+                    return countryRepository.save(newCountry);
+                });
+
+        // Tworzymy nowy SWIFT code
+        SwiftCode swiftCode = new SwiftCode(
+                request.swiftCode(),
+                request.bankName(),
+                request.address(),
+                request.isHeadquarter(),
+                country
+        );
+
+        swiftCodeRepository.save(swiftCode);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Added SWIFT code '" + request.swiftCode() + "' for bank '" + request.bankName() + "' in '" + request.countryName() + "'."));
+    }
+
+
+    @DeleteMapping("/{swiftCode}")
+    public ResponseEntity<?> deleteSwiftCode(@PathVariable String swiftCode) {
+        Optional<SwiftCode> swiftCodeOpt = Optional.ofNullable(swiftCodeRepository.findBySwiftCode(swiftCode));
+
+        if (swiftCodeOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "SWIFT code '" + swiftCode + "' not found."));
+        }
+
+        SwiftCode codeToDelete = swiftCodeOpt.get();
+        Country country = codeToDelete.getCountry();
+
+        swiftCodeRepository.delete(codeToDelete);
+
+        // Jeśli to ostatni kod SWIFT dla kraju, usuwamy również kraj
+        if (!swiftCodeRepository.existsByCountry(country)) {
+            countryRepository.delete(country);
+            return ResponseEntity.ok(Map.of("message", "Deleted SWIFT code '" + swiftCode + "' and removed country '" + country.getName() + "' as it had no more SWIFT codes."));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Deleted SWIFT code '" + swiftCode + "' successfully."));
+    }
+
+
+
 
 }

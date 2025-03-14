@@ -76,8 +76,7 @@ public class CsvImporterService {
         return new SwiftCode(
                 fields[1].trim(), // swift_code
                 fields[3].trim(), // bank_name
-                fields[2].trim(), // branch_name
-                fields[5].trim(), // city
+                 // branch_name
                 address, // ✅ Zapisujemy address
                 isHeadquarter, // ✅ Zapisujemy czy headquarters
                 country

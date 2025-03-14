@@ -21,11 +21,8 @@ public class SwiftCode {
     @Column(nullable = false)
     private String bankName;
 
-    @Column(nullable = true)
-    private String branchName;
 
-    @Column(nullable = false)
-    private String city;
+
 
     @Column(nullable = false) // ✅ Dodajemy address
     private String address;
@@ -40,15 +37,15 @@ public class SwiftCode {
     public SwiftCode() {
     }
 
-    public SwiftCode(String swiftCode, String bankName, String branchName, String city, String address, boolean isHeadquarter, Country country) {
+    public SwiftCode(String swiftCode, String bankName, String address, boolean isHeadquarter, Country country) {
         this.swiftCode = swiftCode;
         this.bankName = bankName;
-        this.branchName = branchName;
-        this.city = city;
         this.address = address;
         this.isHeadquarter = isHeadquarter;
         this.country = country;
     }
+
+
 
     public Long getId() {
         return id;
@@ -62,13 +59,9 @@ public class SwiftCode {
         return bankName;
     }
 
-    public String getBranchName() {
-        return branchName;
-    }
 
-    public String getCity() {
-        return city;
-    }
+
+
 
     public String getAddress() {
         return address;
