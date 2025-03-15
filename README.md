@@ -132,8 +132,5 @@ Udostępnij swoje rozwiązanie w publicznym repozytorium **GitHub**.
 ## 💡 Kontakt
 
 Jeśli masz pytania lub uwagi, skontaktuj się poprzez **GitHub** lub otwórz issue w repozytorium. 🚀
-```
 
----
 
-📥 **Czy chcesz, żebym od razu wygenerował ten plik `README.md`, abyś mógł go pobrać?**
